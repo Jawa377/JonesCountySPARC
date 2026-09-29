@@ -3,6 +3,7 @@
 Usage (from the project root, with .venv active):
     python database/init_db.py                 # schema + seed data
     python database/init_db.py --schema-only   # empty tables
+    python database/init_db.py --if-missing    # skip quietly if it already exists
 
 The engine comes from the DATABASE_ENGINE environment variable:
     sqlite (default)  -> database/sparc.db
@@ -11,6 +12,8 @@ The engine comes from the DATABASE_ENGINE environment variable:
 This script never drops, deletes, or overwrites anything. If the target
 database already has SPARC tables (or sparc.db already exists), it stops
 with an error; removing the old database is a deliberate, manual step.
+With --if-missing it exits successfully instead, which lets the Heroku
+Procfile build a fresh demo database on each dyno start.
 """
 
 import argparse
@@ -167,6 +170,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create and seed the SPARC database.")
     parser.add_argument("--schema-only", action="store_true", help="create tables without seed data")
     parser.add_argument(
+        "--if-missing",
+        action="store_true",
+        help="exit successfully (doing nothing) if the database already exists",
+    )
+    parser.add_argument(
         "--sqlite-path",
         type=Path,
         default=DEFAULT_SQLITE_PATH,
@@ -198,7 +206,13 @@ def main(argv: list[str]) -> int:
         else:
             print(f"Unknown DATABASE_ENGINE '{engine}'. Use 'sqlite' or 'mysql'.")
             return 1
-    except (FileExistsError, RuntimeError, sqlite3.Error) as exc:
+    except FileExistsError as exc:
+        if args.if_missing:
+            print(f"Skipped: {exc}")
+            return 0
+        print(f"Stopped: {exc}")
+        return 1
+    except (RuntimeError, sqlite3.Error) as exc:
         print(f"Stopped: {exc}")
         return 1
 

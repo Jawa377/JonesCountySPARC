@@ -63,6 +63,14 @@ yourself, then rerun it.
 | `alignments` | Which element covers which standard, and the exact evidence passage |
 | `coverage_dismissals` | Gaps a teacher marked as intentional |
 
+## Heroku demo (`jones-countysparc`)
+
+The Procfile runs `python database/init_db.py --if-missing` before gunicorn,
+so each fresh dyno builds and seeds its own `sparc.db`. Heroku's filesystem
+is wiped on every restart and deploy (at least daily), so **teacher edits
+don't persist**. That's fine for a demo. For real use, switch to MySQL
+(below). Config vars: `FLASK_SECRET_KEY`, `DATABASE_ENGINE=sqlite`.
+
 ## Production (Dokku on iscs2)
 
 ```bash
