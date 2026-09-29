@@ -1,0 +1,10 @@
+{# Segmented coverage bar + legend. Needs: coverage. #}
+<div class="status-bar" aria-hidden="true">
+  {% for card in coverage.standards %}<span class="s-{{ 'dismissed' if card.dismissal else card.status }}" title="{{ card.code }}"></span>{% endfor %}
+</div>
+<div class="legend">
+  <span><i style="background:var(--covered)"></i>Covered</span>
+  <span><i style="background:var(--partial)"></i>Partial</span>
+  <span><i style="background:var(--gap)"></i>Gap</span>
+  {% if coverage.counts.dismissed %}<span><i style="background:var(--rule-strong)"></i>Dismissed</span>{% endif %}
+</div>

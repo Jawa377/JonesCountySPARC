@@ -60,3 +60,44 @@ def test_edit_settings(ruffin, db):
 def test_edit_settings_rejects_inverted_range(ruffin, db):
     ruffin.post("/studio/unit/settings/1", data={"lexile_min": 950, "lexile_max": 850, "voice": "match_materials"})
     assert db.execute("SELECT lexile_min FROM units WHERE unit_id = 1").fetchone()[0] == 850
+
+
+def test_studio_marks_evidence_passages(ruffin):
+    body = ruffin.get("/studio/section/1").data.decode()
+    assert '<span class="evidence" data-codes="S6E4.b">Water is stubborn about changing temperature.' in body
+    assert 'data-codes="S6E3.c"' in body
+    assert 'data-highlight="S6E3.a"' in body
+
+
+def test_studio_tags_items_with_codes(ruffin):
+    body = ruffin.get("/studio/section/2?tab=assignments").data.decode()
+    assert body.count('class="item-card" data-editable data-codes="S6E4.b"') == 3
+
+
+def test_lesson_view_200(ruffin):
+    body = ruffin.get("/studio/lesson/2").data.decode()
+    assert "Why the Coast Stays Mild" in body
+    assert "Learning target" in body and "I can explain why water heats" in body
+    assert "Specific heat" in body and "Thermal cushion" in body
+    assert "three levels, same standard" in body
+    assert "Exit check" in body and "DOK 3" in body
+    assert "45 min" in body and "Lexile 910" in body
+
+
+def test_lesson_view_other_teacher_404(other_teacher):
+    assert other_teacher.get("/studio/lesson/2").status_code == 404
+
+
+def test_mark_passages_handles_overlap():
+    from app.blueprints.studios import mark_passages
+    segments = mark_passages("abc def ghi", [("A", "def"), ("B", "c def g")])
+    assert [(s["text"], s["codes"]) for s in segments] == [
+        ("ab", []), ("c ", ["B"]), ("def", ["A", "B"]), (" g", ["B"]), ("hi", []),
+    ]
+
+
+def test_build_blocks_headings_and_paragraphs():
+    from app.blueprints.studios import build_blocks
+    blocks = build_blocks("Intro.\n\n## Head\nBody.", [])
+    assert [b["kind"] for b in blocks] == ["paragraph", "heading", "paragraph"]
+    assert blocks[1]["text"] == "Head"

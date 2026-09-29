@@ -1,0 +1,2 @@
+{# Breadcrumb for pages inside a unit. Needs: unit; optional: tail (last crumb text). #}
+<a href="{{ url_for('units.list_units') }}">{{ unit.grade|ordinal }} Grade {{ unit.subject }}</a><span class="sep">/</span><a href="{{ url_for('units.view_unit', unit_id=unit.unit_id) }}">Unit {{ unit.unit_number }}</a><span class="sep">/</span>{% if tail %}<a href="{{ url_for('units.view_unit', unit_id=unit.unit_id) }}">{{ unit.title }}</a><span class="sep">/</span><strong>{{ tail }}</strong>{% else %}<strong>{{ unit.title }}</strong>{% endif %}

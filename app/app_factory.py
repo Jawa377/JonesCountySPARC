@@ -97,6 +97,15 @@ def ordinal(number: int) -> str:
     return f"{number}{suffix}"
 
 
+HONORIFICS = {"mr.", "mrs.", "ms.", "mx.", "dr.", "mr", "mrs", "ms", "mx", "dr"}
+
+
+def initials(name: str) -> str:
+    """Jinja filter: avatar initials, skipping honorifics. "Ms. Ruffin" -> "R"."""
+    words = [w for w in name.split() if w.lower() not in HONORIFICS]
+    return "".join(w[0] for w in words[:2]).upper() or "?"
+
+
 def create_app(test_config: dict | None = None) -> Flask:
     """Build the SPARC Textbook Studio app.
 
@@ -110,5 +119,6 @@ def create_app(test_config: dict | None = None) -> Flask:
     register_error_pages(app)
     register_template_context(app)
     app.add_template_filter(ordinal)
+    app.add_template_filter(initials)
     app.teardown_appcontext(close_db)
     return app

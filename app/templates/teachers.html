@@ -1,21 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Who's working? · SPARC Studio{% endblock %}
 {% block content %}
-<section>
-  <p class="label">Pilot teachers</p>
-  <h1>Who's working?</h1>
-  <p>There's no login in Phase 1. Pick your name to see your units.</p>
-  <ul class="teacher-list">
+<div class="page page-narrow">
+  <div class="page-head">
+    <p class="label">Pilot teachers</p>
+    <h1>Who's working?</h1>
+    <p class="lede">There's no login in Phase 1. Pick your name to open your units.</p>
+  </div>
+  <ul class="plain-list stack">
     {% for t in teachers %}
       <li>
         <form method="post" action="{{ url_for('teachers.select_teacher') }}">
           <input type="hidden" name="teacher_id" value="{{ t.teacher_id }}">
-          <button type="submit">{{ t.name }}</button>
-          <span>{{ t.email }}</span>
-          {% if current_teacher and current_teacher.teacher_id == t.teacher_id %}<em>current</em>{% endif %}
+          <button type="submit" class="teacher-option">
+            <span class="avatar" aria-hidden="true">{{ t.name|initials }}</span>
+            <span><span class="name">{{ t.name }}</span><br><span class="email">{{ t.email }}</span></span>
+            {% if current_teacher and current_teacher.teacher_id == t.teacher_id %}<span class="badge badge-covered">Current</span>{% endif %}
+          </button>
         </form>
       </li>
     {% endfor %}
   </ul>
-</section>
+</div>
 {% endblock %}

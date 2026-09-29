@@ -21,6 +21,9 @@ VOICE_LABELS = {"match_materials": "Match my materials"}
 
 STATUS_RANK = {"covered": 0, "partial": 1, "gap": 2}
 
+# Which studio tab shows each kind of alignable element.
+ELEMENT_TABS = {"section": "section", "assignment": "assignments", "quiz_item": "quiz"}
+
 EDITED_OUT_NOTE = "The evidence passage was edited out of the text"
 
 
@@ -153,6 +156,7 @@ def check_evidence(alignment: dict, elements: dict) -> dict | None:
         "element_type": alignment["element_type"],
         "element_id": alignment["element_id"],
         "section_id": element["section_id"],
+        "tab": ELEMENT_TABS[alignment["element_type"]],
         "coverage_status": alignment["coverage_status"],
         "evidence_text": alignment["evidence_text"],
         "evidence_note": alignment["evidence_note"],

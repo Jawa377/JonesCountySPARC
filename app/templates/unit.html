@@ -1,37 +1,58 @@
 {% extends "base.html" %}
 {% block title %}{{ unit.title }} · SPARC Studio{% endblock %}
-{% block crumbs %}<a href="{{ url_for('units.list_units') }}">My units</a> / {{ unit.title }}{% endblock %}
+{% block crumbs %}{% include "_crumbs_unit.html" %}{% endblock %}
 {% block content %}
-<section>
-  <p class="label">{{ unit.grade|ordinal }} Grade {{ unit.subject }} · Unit {{ unit.unit_number }}</p>
-  <h1>{{ unit.title }}</h1>
-  <p>
-    <a href="{{ url_for('studios.open_unit', unit_id=unit.unit_id) }}">Open in studio</a> ·
-    <a href="{{ url_for('standards.show_coverage', unit_id=unit.unit_id) }}">Standards coverage</a> ·
-    <a href="{{ url_for('materials.list_materials', unit_id=unit.unit_id) }}">Materials ({{ materials|length }})</a>
-  </p>
+<div class="page">
+  <div class="page-head">
+    <p class="label">{{ unit.grade|ordinal }} Grade {{ unit.subject }} · Unit {{ unit.unit_number }}</p>
+    <h1>{{ unit.title }}</h1>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('studios.open_unit', unit_id=unit.unit_id) }}">Open in studio</a>
+      <a class="btn btn-ghost" href="{{ url_for('standards.show_coverage', unit_id=unit.unit_id) }}">Standards coverage</a>
+      <a class="btn btn-ghost" href="{{ url_for('materials.list_materials', unit_id=unit.unit_id) }}">Materials · {{ materials|length }}</a>
+    </div>
+  </div>
 
-  <h2>Sections</h2>
-  <ol class="section-list">
-    {% for s in sections %}
-      <li>
-        <a href="{{ url_for('studios.show_studio', section_id=s.section_id) }}">Section {{ s.section_number }}: {{ s.title }}</a>
-        <span>{{ "{:,}".format(s.word_count) }} words{% if s.lexile %} · Lexile {{ s.lexile }}{% endif %} · {{ s.status }}</span>
-      </li>
-    {% else %}
-      <li>No sections yet.</li>
-    {% endfor %}
-  </ol>
+  <div class="two-col">
+    <section>
+      <p class="label">Sections</p>
+      <div class="table-wrap">
+        <table class="row-table">
+          <thead><tr><th>#</th><th>Title</th><th>Words</th><th>Lexile</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for s in sections %}
+              <tr>
+                <td>{{ s.section_number }}</td>
+                <td><a href="{{ url_for('studios.show_studio', section_id=s.section_id) }}">{{ s.title }}</a></td>
+                <td>{{ "{:,}".format(s.word_count) }}</td>
+                <td>{{ s.lexile or '—' }}</td>
+                <td><span class="badge badge-neutral">{{ s.status }}</span></td>
+                <td><a href="{{ url_for('studios.show_lesson', section_id=s.section_id) }}">Lesson view</a></td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6" class="empty">No sections yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  <h2>Coverage</h2>
-  <p>{{ coverage.addressed }} / {{ coverage.total }} standards addressed ·
-     {{ coverage.counts.covered }} covered, {{ coverage.counts.partial }} partial, {{ coverage.counts.gap }} gaps{% if coverage.counts.dismissed %}, {{ coverage.counts.dismissed }} dismissed{% endif %}</p>
-
-  <h2>Draft settings</h2>
-  <dl>
-    <dt>Standards set</dt><dd>{{ unit.standards_set }}</dd>
-    <dt>Reading level</dt><dd>Lexile {{ unit.lexile_min }}–{{ unit.lexile_max }}</dd>
-    <dt>Voice</dt><dd>{{ voice_label }}</dd>
-  </dl>
-</section>
+    <aside class="stack">
+      <div class="card coverage-summary">
+        <p class="label label-muted">Standards coverage</p>
+        <span class="big">{{ coverage.addressed }}</span> <span class="of">of {{ coverage.total }} in Unit {{ unit.unit_number }}</span>
+        {% include "_status_bar.html" %}
+        <p class="meta" style="margin-top:0.6rem">{{ coverage.counts.covered }} covered, {{ coverage.counts.partial }} partial, {{ coverage.counts.gap }} {{ 'gap' if coverage.counts.gap == 1 else 'gaps' }}{% if coverage.counts.dismissed %}, {{ coverage.counts.dismissed }} dismissed{% endif %}</p>
+      </div>
+      <div class="card">
+        <p class="label label-muted">Draft settings</p>
+        <dl class="settings-list">
+          <dt>Standards</dt><dd>{{ unit.standards_set }}</dd>
+          <dt>Reading level</dt><dd>Lexile {{ unit.lexile_min }}–{{ unit.lexile_max }}</dd>
+          <dt>Voice</dt><dd>{{ voice_label }}</dd>
+        </dl>
+      </div>
+    </aside>
+  </div>
+</div>
 {% endblock %}

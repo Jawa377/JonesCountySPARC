@@ -1,0 +1,10 @@
+{# Section body as headings and paragraphs. Needs: blocks. Evidence segments get data-codes for highlighting. #}
+{% for block in blocks %}
+  {% if block.kind == 'heading' %}
+    <h3>{{ block.text }}</h3>
+  {% else %}
+    <p>{%- for seg in block.segments -%}
+      {%- if seg.codes -%}<span class="evidence" data-codes="{{ seg.codes|join(' ') }}">{{ seg.text }}</span>{%- else -%}{{ seg.text }}{%- endif -%}
+    {%- endfor -%}</p>
+  {% endif %}
+{% endfor %}

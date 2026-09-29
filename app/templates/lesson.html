@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ section.title }} · Lesson · SPARC Studio{% endblock %}
+{% block crumbs %}{% set tail = "Section " ~ section.section_number ~ " lesson" %}{% include "_crumbs_unit.html" %}{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="lesson-layout">
+    <article class="lesson-page">
+      <p class="label">{% if section.status == 'draft' %}Generated lesson · ready for the teacher to edit{% else %}Lesson · edited by the teacher{% endif %}</p>
+      <h1>{{ section.title }}</h1>
+      <div class="lesson-meta">
+        <span>{{ unit.grade|ordinal }} Grade {{ unit.subject }} · Unit {{ unit.unit_number }}, Section {{ section.section_number }}</span>
+        {% for card in standards_here %}<span class="code-chip">{{ card.code }}</span>{% endfor %}
+        {% if section.duration_minutes %}<span>· {{ section.duration_minutes }} min</span>{% endif %}
+        {% if section.lexile %}<span>· Lexile {{ section.lexile }}</span>{% endif %}
+      </div>
+      <hr class="rule" style="margin-bottom:0">
+
+      {% if section.learning_target %}
+        <div class="lesson-block">
+          <p class="label">Learning target</p>
+          <p class="lesson-target">{{ section.learning_target }}</p>
+        </div>
+      {% endif %}
+
+      <div class="lesson-block">
+        <p class="label">The reading</p>
+        <div class="prose">{% include "_blocks.html" %}</div>
+        {% if vocab %}
+          <dl class="vocab-box">
+            {% for v in vocab %}<dt>{{ v.term }}</dt><dd>{{ v.definition }}</dd>{% endfor %}
+          </dl>
+        {% endif %}
+      </div>
+
+      {% if assignments %}
+        <div class="lesson-block">
+          <p class="label">Practice{% if same_standard %} — {{ 'three levels' if assignments|length == 3 else 'every level' }}, same standard{% endif %}</p>
+          {% for a in assignments %}
+            <div class="practice-card">
+              <div class="item-head">
+                <span class="level-tag level-{{ a.level }}">{{ a.level|capitalize }}</span>
+                {% for c in item_codes.get('assignment-' ~ a.assignment_id, []) %}<span class="code-chip">{{ c }}</span>{% endfor %}
+              </div>
+              <p>{{ a.prompt_text }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if quiz_items %}
+        <div class="lesson-block">
+          <p class="label">{{ 'Exit check' if quiz_items|length == 1 else 'Quiz' }}</p>
+          {% for q in quiz_items %}
+            <div class="practice-card">
+              <div class="item-head">
+                <span class="badge badge-neutral">DOK {{ q.dok_level }}</span>
+                {% for c in item_codes.get('quiz_item-' ~ q.quiz_item_id, []) %}<span class="code-chip">{{ c }}</span>{% endfor %}
+              </div>
+              <p>{{ q.prompt_text }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+
+    <aside class="margin-notes no-print">
+      <div class="actions" style="margin-bottom:1.5rem">
+        <a class="btn btn-small" href="{{ url_for('studios.show_studio', section_id=section.section_id) }}">Edit in studio</a>
+        <button type="button" class="btn btn-ghost btn-small" data-print>Print</button>
+      </div>
+      <p class="label">Standards in this lesson</p>
+      {% for card in standards_here %}
+        {% set ev = card.evidence|selectattr('section_id', 'equalto', section.section_id)|first %}
+        <div class="margin-note">
+          <a class="code-chip" href="{{ url_for('studios.show_studio', section_id=section.section_id, tab=ev.tab) }}#{{ card.code }}">{{ card.code }}</a>
+          <p>{{ card.description }}</p>
+        </div>
+      {% else %}
+        <div class="margin-note"><p>No standard is tagged in this section yet.</p></div>
+      {% endfor %}
+      <div class="margin-note">
+        <p class="label" style="margin:0">Every tag is checkable</p>
+        <p>Each code was retrieved from the state's published standards file. Click one to see the exact passage it maps to in the studio.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

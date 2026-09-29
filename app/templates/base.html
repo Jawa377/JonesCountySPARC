@@ -4,17 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SPARC Studio{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sparc.css') }}">
+  <script src="{{ url_for('static', filename='js/sparc.js') }}" defer></script>
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="{{ url_for('main.index') }}">SPARC Studio</a>
-    <nav aria-label="Breadcrumb" class="crumbs">{% block crumbs %}{% endblock %}</nav>
-    <div class="who">
-      {% if current_teacher %}
-        <span>{{ current_teacher.name }}</span>
-        <a href="{{ url_for('teachers.list_teachers') }}">Switch</a>
-      {% endif %}
-      <a href="{{ url_for('main.about') }}">About</a>
+    <div class="site-header-inner">
+      <a class="brand" href="{{ url_for('main.index') }}"><span class="brand-mark" aria-hidden="true">S</span>SPARC Studio</a>
+      <nav class="crumbs" aria-label="Breadcrumb">{% block crumbs %}{% endblock %}</nav>
+      <div class="header-actions">
+        {% block header_actions %}{% endblock %}
+        <a href="{{ url_for('main.about') }}">About</a>
+        {% if current_teacher %}
+          <a href="{{ url_for('teachers.list_teachers') }}" title="Working as {{ current_teacher.name }}. Switch teacher.">
+            <span class="avatar" aria-label="{{ current_teacher.name }}">{{ current_teacher.name|initials }}</span>
+          </a>
+        {% endif %}
+      </div>
     </div>
   </header>
 
@@ -29,6 +38,5 @@
   {% endwith %}
 
   <main>{% block content %}{% endblock %}</main>
-  {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {% block title %}About · SPARC Studio{% endblock %}
 {% block content %}
-<article>
+<div class="page page-narrow">
+  <p class="label">Jones County School System × Georgia College</p>
   <h1>SPARC Textbook Studio</h1>
-  <p>An authoring tool for SPARC Academy teachers. A teacher adds materials they already wrote, and the studio drafts a textbook section, assignments, and a quiz. Every element is tagged to a Georgia standard retrieved from the state's published CASE data, never generated.</p>
-  <p>Phase 1 covers the Authoring Studio and the Standards Engine for one pilot unit: 6th Grade Science, Unit 3, "Water in Earth's Systems." It touches no student data. Draft generation is not connected yet.</p>
-  <p>A partnership between the Jones County School System and Georgia College &amp; State University.</p>
-</article>
+  <hr class="rule-heavy">
+  <div class="prose">
+    <p>An authoring tool that turns SPARC Academy teachers' own materials into standards-aligned textbook sections, assignments, and quizzes. The teacher stays the author: every word is editable, and nothing publishes on its own.</p>
+    <p>Every element carries a Georgia standard retrieved from the state's published CASE data, never recalled by a model. The coverage panel reports gaps honestly, because a tool that always claims perfect coverage is a tool no teacher trusts.</p>
+  </div>
+  <p class="label" style="margin-top:2rem">Phase 1</p>
+  <div class="prose">
+    <p>The Authoring Studio and the Standards Engine, for one pilot unit: 6th Grade Science, Unit 3, "Water in Earth's Systems." Phase 1 touches no student data. Draft generation is not connected yet.</p>
+  </div>
+</div>
 {% endblock %}

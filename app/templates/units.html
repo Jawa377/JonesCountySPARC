@@ -1,23 +1,26 @@
 {% extends "base.html" %}
 {% block title %}My units · SPARC Studio{% endblock %}
+{% block crumbs %}<strong>My units</strong>{% endblock %}
 {% block content %}
-<section>
-  <p class="label">{{ current_teacher.name }}</p>
-  <h1>My units</h1>
+<div class="page">
+  <div class="page-head">
+    <p class="label">{{ current_teacher.name }}</p>
+    <h1>My units</h1>
+  </div>
   {% if units %}
-    <ul class="unit-list">
+    <ul class="plain-list stack">
       {% for u in units %}
         <li>
-          <a href="{{ url_for('units.view_unit', unit_id=u.unit_id) }}">
-            <span class="label">{{ u.grade|ordinal }} Grade {{ u.subject }} · Unit {{ u.unit_number }}</span>
-            <strong>{{ u.title }}</strong>
+          <a class="card card-link unit-card" href="{{ url_for('units.view_unit', unit_id=u.unit_id) }}">
+            <p class="label">{{ u.grade|ordinal }} Grade {{ u.subject }} · Unit {{ u.unit_number }}</p>
+            <p class="title">{{ u.title }}</p>
+            <p class="meta">{{ u.section_count }} section{{ '' if u.section_count == 1 else 's' }} · {{ u.material_count }} material{{ '' if u.material_count == 1 else 's' }} · {{ u.standards_set }}</p>
           </a>
-          <span>{{ u.section_count }} sections · {{ u.material_count }} materials · {{ u.standards_set }}</span>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>You don't have any units yet.</p>
+    <div class="card"><p class="empty" style="margin:0">You don't have any units yet.</p></div>
   {% endif %}
-</section>
+</div>
 {% endblock %}

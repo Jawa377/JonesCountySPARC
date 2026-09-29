@@ -1,10 +1,14 @@
-"""Studios blueprint: the authoring screen (handout page 2) and its edit forms.
+"""Studios blueprint: the authoring screen (handout page 2), its edit forms,
+and the lesson view (handout page 3).
 
 The studio shows one section at a time: materials on the left, the section
 with Textbook / Assignments / Quiz tabs in the center, and the unit's
 standards coverage rail on the right. Every edit is a POST that redirects
-back to the same tab.
+back to the same tab. The lesson view renders the same section record as a
+finished textbook page.
 """
+
+import re
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
@@ -74,6 +78,68 @@ def get_owned_item(table: str, id_column: str, item_id: int) -> dict:
     return item
 
 
+def mark_passages(text: str, passages: list[tuple[str, str]]) -> list[dict]:
+    """Split a paragraph into segments, tagging the ones inside evidence passages.
+
+    Input:  paragraph text; (standard code, exact passage) pairs.
+    Output: [{"text": str, "codes": [codes covering this segment]}] in order.
+    Overlapping passages are fine: each segment lists every code covering it.
+    """
+    spans = []
+    for code, passage in passages:
+        start = text.find(passage) if passage else -1
+        if start >= 0:
+            spans.append((start, start + len(passage), code))
+    cuts = sorted({0, len(text), *(s for s, _, _ in spans), *(e for _, e, _ in spans)})
+    return [
+        {"text": text[a:b], "codes": sorted({code for s, e, code in spans if s <= a and b <= e})}
+        for a, b in zip(cuts, cuts[1:])
+    ]
+
+
+def build_blocks(body_text: str, passages: list[tuple[str, str]]) -> list[dict]:
+    """Turn section body text into headings and paragraphs for display.
+
+    Paragraphs are separated by blank lines; a line starting with "## " is a
+    subheading. Output: [{"kind": "heading"|"paragraph", "text"|"segments"}].
+    """
+    blocks = []
+    for chunk in re.split(r"\n\s*\n", body_text.strip()):
+        chunk = chunk.strip()
+        if chunk.startswith("## "):
+            heading, _, rest = chunk.partition("\n")
+            blocks.append({"kind": "heading", "text": heading[3:].strip()})
+            chunk = rest.strip()
+        if chunk:
+            blocks.append({"kind": "paragraph", "segments": mark_passages(chunk, passages)})
+    return blocks
+
+
+def section_evidence(coverage: dict, section_id: int) -> dict:
+    """Pull one section's evidence out of the unit coverage.
+
+    Output: {
+      "passages": [(code, exact passage)] inside the section body,
+      "item_codes": {"assignment-1": [codes], "quiz_item-1": [codes]},
+      "codes": codes with any evidence in this section, in rail order,
+    }
+    """
+    passages, item_codes, codes = [], {}, []
+    for card in coverage["standards"]:
+        for evidence in card["evidence"]:
+            if evidence["section_id"] != section_id:
+                continue
+            if card["code"] not in codes:
+                codes.append(card["code"])
+            if evidence["element_type"] == "section":
+                if evidence["evidence_text"]:
+                    passages.append((card["code"], evidence["evidence_text"]))
+            else:
+                key = f"{evidence['element_type']}-{evidence['element_id']}"
+                item_codes.setdefault(key, []).append(card["code"])
+    return {"passages": passages, "item_codes": item_codes, "codes": codes}
+
+
 def studio_url(section_id: int, tab: str = "section") -> str:
     """URL of the studio screen for a section, on a given tab."""
     return url_for("studios.show_studio", section_id=section_id, tab=tab)
@@ -107,6 +173,8 @@ def show_studio(section_id: int):
         "SELECT section_id, section_number, title FROM sections WHERE unit_id = %s ORDER BY section_number",
         (unit["unit_id"],),
     )
+    coverage = get_unit_coverage(unit)
+    evidence = section_evidence(coverage, section_id)
     return render_template(
         "studio.html",
         unit=unit,
@@ -116,8 +184,38 @@ def show_studio(section_id: int):
         materials=get_unit_materials(unit["unit_id"]),
         assignments=get_section_assignments(section_id),
         quiz_items=get_section_quiz_items(section_id),
-        coverage=get_unit_coverage(unit),
+        coverage=coverage,
+        blocks=build_blocks(section["body_text"], evidence["passages"]),
+        item_codes=evidence["item_codes"],
         voice_labels=VOICE_LABELS,
+    )
+
+
+@bp.get("/lesson/<int:section_id>")
+@teacher_required
+def show_lesson(section_id: int):
+    """One section rendered as a finished lesson page (handout page 3)."""
+    section = get_owned_section(section_id)
+    unit = get_owned_unit(section["unit_id"])
+    coverage = get_unit_coverage(unit)
+    evidence = section_evidence(coverage, section_id)
+    assignments = get_section_assignments(section_id)
+
+    practice_codes = {tuple(evidence["item_codes"].get(f"assignment-{a['assignment_id']}", [])) for a in assignments}
+    return render_template(
+        "lesson.html",
+        unit=unit,
+        section=section,
+        blocks=build_blocks(section["body_text"], []),
+        vocab=query_all(
+            "SELECT term, definition FROM vocab_terms WHERE section_id = %s ORDER BY sort_order, vocab_term_id",
+            (section_id,),
+        ),
+        assignments=assignments,
+        quiz_items=get_section_quiz_items(section_id),
+        item_codes=evidence["item_codes"],
+        standards_here=[card for card in coverage["standards"] if card["code"] in evidence["codes"]],
+        same_standard=len(assignments) > 1 and len(practice_codes) == 1 and () not in practice_codes,
     )
 
 

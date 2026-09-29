@@ -1,98 +1,197 @@
 {% extends "base.html" %}
 {% block title %}{{ section.title }} · SPARC Studio{% endblock %}
-{% block crumbs %}{{ unit.grade|ordinal }} Grade {{ unit.subject }} / Unit {{ unit.unit_number }} / <a href="{{ url_for('units.view_unit', unit_id=unit.unit_id) }}">{{ unit.title }}</a>{% endblock %}
+{% block crumbs %}{% include "_crumbs_unit.html" %}{% endblock %}
+{% block header_actions %}<a href="{{ url_for('studios.show_lesson', section_id=section.section_id) }}">Lesson view</a>{% endblock %}
 {% block content %}
 {% set here = url_for('studios.show_studio', section_id=section.section_id, tab=tab) %}
-<div class="studio">
-  <aside class="studio-left">
-    <p class="label">My materials <span>{{ materials|length }}</span></p>
-    <ul class="material-list">
-      {% for m in materials %}
-        <li><span class="chip chip-{{ m.file_type|lower }}">{{ m.file_type }}</span> {{ m.filename }} <small>{{ m.size_label }}</small></li>
-      {% endfor %}
-    </ul>
-    <a href="{{ url_for('materials.list_materials', unit_id=unit.unit_id) }}">Manage materials</a>
+{% set next_url = here %}
+<div class="page page-wide">
+  <div class="studio-frame">
+    <div class="studio">
 
-    <form method="post" action="{{ url_for('studios.edit_settings', unit_id=unit.unit_id) }}">
-      <p class="label">Draft settings</p>
-      <input type="hidden" name="section_id" value="{{ section.section_id }}">
-      <p>Standards set<br><strong>{{ unit.standards_set }}</strong></p>
-      <fieldset>
-        <legend>Reading level (Lexile)</legend>
-        <label for="lexile-min">From</label>
-        <input id="lexile-min" type="number" name="lexile_min" value="{{ unit.lexile_min }}" min="0" max="2000" step="10">
-        <label for="lexile-max">to</label>
-        <input id="lexile-max" type="number" name="lexile_max" value="{{ unit.lexile_max }}" min="0" max="2000" step="10">
-      </fieldset>
+      {# ---------- Left: materials and draft settings ---------- #}
+      <aside class="studio-left" aria-label="Materials and draft settings">
+        <div class="rail-section">
+          <div class="label-row"><p class="label label-muted">My materials</p><span class="count">{{ materials|length }}</span></div>
+          <ul class="plain-list">
+            {% for m in materials %}
+              <li class="material-card">
+                <span class="chip chip-{{ m.file_type|lower }}">{{ m.file_type }}</span>
+                <span class="grow">{{ m.filename }}<small>{{ m.size_label }}</small></span>
+              </li>
+            {% else %}
+              <li class="empty">No materials yet.</li>
+            {% endfor %}
+          </ul>
+          <div class="actions" style="margin-top:0.6rem">
+            <button type="button" class="link-btn" data-open-dialog="upload-dialog">+ Add material</button>
+            <a class="link-btn" href="{{ url_for('materials.list_materials', unit_id=unit.unit_id) }}">Manage</a>
+          </div>
+        </div>
+
+        <div class="rail-section">
+          <div class="label-row"><p class="label label-muted">Draft settings</p><button type="button" class="link-btn" data-open-dialog="settings-dialog">Edit</button></div>
+          <div class="setting"><p class="label">Standards set</p>{{ unit.standards_set }}</div>
+          <div class="setting"><p class="label">Reading level</p>Lexile {{ unit.lexile_min }}–{{ unit.lexile_max }}</div>
+          <div class="setting"><p class="label">Voice</p>{{ voice_labels.get(unit.voice, unit.voice) }}</div>
+        </div>
+      </aside>
+
+      {# ---------- Center: the draft ---------- #}
+      <section class="studio-center" aria-label="Draft">
+        <nav class="tabs" aria-label="Section parts">
+          <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='section') }}" {% if tab == 'section' %}aria-current="page"{% endif %}>Textbook section</a>
+          <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='assignments') }}" {% if tab == 'assignments' %}aria-current="page"{% endif %}>Assignments<span class="pill">{{ assignments|length }}</span></a>
+          <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='quiz') }}" {% if tab == 'quiz' %}aria-current="page"{% endif %}>Quiz<span class="pill">{{ quiz_items|length }}</span></a>
+          <span class="tabs-end section-switch" aria-label="Sections">
+            {% for s in sections %}
+              <a href="{{ url_for('studios.show_studio', section_id=s.section_id, tab=tab) }}" title="{{ s.title }}" {% if s.section_id == section.section_id %}aria-current="page"{% endif %}>Section {{ s.section_number }}</a>
+            {% endfor %}
+          </span>
+        </nav>
+
+        {% if tab == 'section' %}
+          <div data-editable>
+            <div data-view>
+              <div class="draft-head">
+                <div>
+                  <p class="label">Unit {{ unit.unit_number }} · Section {{ section.section_number }} · {{ section.status }}</p>
+                  <h1>{{ section.title }}</h1>
+                  <p class="meta">{% if section.status == 'draft' %}Generated from your {{ materials|length }} files{% else %}Edited by you{% endif %} · {{ "{:,}".format(section.word_count) }} words{% if section.lexile %} · Lexile {{ section.lexile }}{% endif %} · full edit control</p>
+                </div>
+                <div class="actions">
+                  <button type="button" class="btn btn-ghost btn-small" data-toggle-edit>Edit</button>
+                </div>
+              </div>
+              <div class="draft-body prose">{% include "_blocks.html" %}</div>
+            </div>
+
+            <form data-form hidden method="post" action="{{ url_for('studios.edit_section', section_id=section.section_id) }}">
+              <p class="label">Editing · Unit {{ unit.unit_number }} · Section {{ section.section_number }}</p>
+              <div class="field">
+                <label for="title">Title</label>
+                <input id="title" type="text" name="title" value="{{ section.title }}" maxlength="200" required>
+              </div>
+              <div class="field">
+                <label for="body-text">Body text</label>
+                <textarea id="body-text" class="textarea-prose" name="body_text" rows="24" required>{{ section.body_text }}</textarea>
+                <p class="hint">Leave a blank line between paragraphs. Start a line with "## " for a subheading. If you change a highlighted passage, its standard's coverage is rechecked.</p>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn btn-ghost" data-toggle-edit>Cancel</button>
+                <button type="submit" class="btn">Save section</button>
+              </div>
+            </form>
+          </div>
+
+        {% elif tab == 'assignments' %}
+          <p class="label">Unit {{ unit.unit_number }} · Section {{ section.section_number }} · Practice</p>
+          <h2>{{ section.title }}</h2>
+          {% for a in assignments %}
+            {% set codes = item_codes.get('assignment-' ~ a.assignment_id, []) %}
+            <article class="item-card" data-editable data-codes="{{ codes|join(' ') }}">
+              <div class="item-head">
+                <span class="level-tag level-{{ a.level }}">{{ a.level|capitalize }}</span>
+                {% for c in codes %}<span class="code-chip">{{ c }}</span>{% endfor %}
+                <button type="button" class="link-btn" data-toggle-edit>Edit</button>
+              </div>
+              <p class="item-text" data-view>{{ a.prompt_text }}</p>
+              <form data-form hidden method="post" action="{{ url_for('studios.edit_assignment', assignment_id=a.assignment_id) }}">
+                <label for="assignment-{{ a.assignment_id }}" class="sr-label">{{ a.level|capitalize }} prompt</label>
+                <textarea id="assignment-{{ a.assignment_id }}" class="textarea-prose" name="prompt_text" rows="4" required>{{ a.prompt_text }}</textarea>
+                <div class="actions" style="margin-top:0.5rem">
+                  <button type="button" class="btn btn-ghost btn-small" data-toggle-edit>Cancel</button>
+                  <button type="submit" class="btn btn-small">Save</button>
+                </div>
+              </form>
+            </article>
+          {% else %}
+            <p class="empty">No assignments in this section yet.</p>
+          {% endfor %}
+
+        {% else %}
+          <p class="label">Unit {{ unit.unit_number }} · Section {{ section.section_number }} · Quiz</p>
+          <h2>{{ section.title }}</h2>
+          {% for q in quiz_items %}
+            {% set codes = item_codes.get('quiz_item-' ~ q.quiz_item_id, []) %}
+            <article class="item-card" data-editable data-codes="{{ codes|join(' ') }}">
+              <div class="item-head">
+                <span class="level-tag level-core">Question {{ loop.index }}</span>
+                <span class="badge badge-neutral">DOK {{ q.dok_level }}</span>
+                {% for c in codes %}<span class="code-chip">{{ c }}</span>{% endfor %}
+                <button type="button" class="link-btn" data-toggle-edit>Edit</button>
+              </div>
+              <p class="item-text" data-view>{{ q.prompt_text }}</p>
+              <form data-form hidden method="post" action="{{ url_for('studios.edit_quiz_item', quiz_item_id=q.quiz_item_id) }}">
+                <label for="quiz-{{ q.quiz_item_id }}">Question text</label>
+                <textarea id="quiz-{{ q.quiz_item_id }}" class="textarea-prose" name="prompt_text" rows="4" required>{{ q.prompt_text }}</textarea>
+                <div class="field-row" style="margin-top:0.5rem">
+                  <div class="field" style="flex:0 0 7rem;margin:0">
+                    <label for="dok-{{ q.quiz_item_id }}">DOK level</label>
+                    <select id="dok-{{ q.quiz_item_id }}" name="dok_level">
+                      {% for n in range(1, 5) %}<option value="{{ n }}" {% if n == q.dok_level %}selected{% endif %}>{{ n }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="actions">
+                    <button type="button" class="btn btn-ghost btn-small" data-toggle-edit>Cancel</button>
+                    <button type="submit" class="btn btn-small">Save</button>
+                  </div>
+                </div>
+              </form>
+            </article>
+          {% else %}
+            <p class="empty">No quiz items in this section yet.</p>
+          {% endfor %}
+        {% endif %}
+      </section>
+
+      {# ---------- Right: standards coverage rail ---------- #}
+      <aside class="studio-right" aria-label="Standards coverage">
+        <div class="label-row"><p class="label label-muted">Standards coverage</p><span class="count">{{ coverage.addressed }} / {{ coverage.total }}</span></div>
+        <div class="card coverage-summary" style="margin-bottom:0.7rem">
+          <span class="big">{{ coverage.addressed }}</span> <span class="of">of {{ coverage.total }} in Unit {{ unit.unit_number }}</span>
+          {% include "_status_bar.html" %}
+        </div>
+        <ul class="plain-list">
+          {% for card in coverage.standards %}{% include "_coverage_card.html" %}{% endfor %}
+        </ul>
+        <div style="margin-top:0.7rem">{% include "_source_card.html" %}</div>
+      </aside>
+    </div>
+
+    <footer class="studio-footer">
+      <span>Draft generated · {{ coverage.counts.covered }} covered, {{ coverage.counts.partial }} partial, {{ coverage.counts.gap }} {{ 'gap' if coverage.counts.gap == 1 else 'gaps' }}{% if coverage.counts.dismissed %}, {{ coverage.counts.dismissed }} dismissed{% endif %}</span>
+      <span>Phase 1 · generation not connected</span>
+    </footer>
+  </div>
+</div>
+
+{% include "_upload_dialog.html" %}
+
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+  <form method="post" action="{{ url_for('studios.edit_settings', unit_id=unit.unit_id) }}">
+    <h2 id="settings-title">Draft settings</h2>
+    <input type="hidden" name="section_id" value="{{ section.section_id }}">
+    <div class="field">
+      <span class="field-label">Standards set</span>
+      <p style="margin:0">{{ unit.standards_set }}</p>
+      <p class="hint">Fixed for the unit: changing it would detach every standard tag.</p>
+    </div>
+    <fieldset class="field-row">
+      <legend class="field-label">Reading level (Lexile)</legend>
+      <div class="field"><label for="lexile-min">From</label><input id="lexile-min" type="number" name="lexile_min" value="{{ unit.lexile_min }}" min="0" max="2000" step="10" required></div>
+      <div class="field"><label for="lexile-max">To</label><input id="lexile-max" type="number" name="lexile_max" value="{{ unit.lexile_max }}" min="0" max="2000" step="10" required></div>
+    </fieldset>
+    <div class="field">
       <label for="voice">Voice</label>
       <select id="voice" name="voice">
-        {% for value, label in voice_labels.items() %}
-          <option value="{{ value }}" {% if value == unit.voice %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
+        {% for value, label in voice_labels.items() %}<option value="{{ value }}" {% if value == unit.voice %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
-      <button type="submit">Save settings</button>
-    </form>
-  </aside>
-
-  <section class="studio-center">
-    <nav class="section-switch" aria-label="Sections">
-      {% for s in sections %}
-        <a href="{{ url_for('studios.show_studio', section_id=s.section_id) }}" {% if s.section_id == section.section_id %}aria-current="page"{% endif %}>Section {{ s.section_number }}</a>
-      {% endfor %}
-    </nav>
-    <nav class="tabs" aria-label="Section parts">
-      <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='section') }}" {% if tab == 'section' %}aria-current="page"{% endif %}>Textbook section</a>
-      <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='assignments') }}" {% if tab == 'assignments' %}aria-current="page"{% endif %}>Assignments <span>{{ assignments|length }}</span></a>
-      <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='quiz') }}" {% if tab == 'quiz' %}aria-current="page"{% endif %}>Quiz <span>{{ quiz_items|length }}</span></a>
-    </nav>
-
-    <p class="label">Unit {{ unit.unit_number }} · Section {{ section.section_number }} · {{ section.status }}</p>
-
-    {% if tab == 'section' %}
-      <form method="post" action="{{ url_for('studios.edit_section', section_id=section.section_id) }}">
-        <label for="title">Title</label>
-        <input id="title" name="title" value="{{ section.title }}" maxlength="200" required>
-        <p class="meta">Generated from your {{ materials|length }} files · {{ "{:,}".format(section.word_count) }} words{% if section.lexile %} · Lexile {{ section.lexile }}{% endif %} · full edit control</p>
-        <label for="body-text">Body text</label>
-        <textarea id="body-text" name="body_text" rows="24" required>{{ section.body_text }}</textarea>
-        <button type="submit">Save section</button>
-      </form>
-    {% elif tab == 'assignments' %}
-      {% for a in assignments %}
-        <form method="post" action="{{ url_for('studios.edit_assignment', assignment_id=a.assignment_id) }}">
-          <label for="assignment-{{ a.assignment_id }}">{{ a.level|capitalize }}</label>
-          <textarea id="assignment-{{ a.assignment_id }}" name="prompt_text" rows="3" required>{{ a.prompt_text }}</textarea>
-          <button type="submit">Save</button>
-        </form>
-      {% else %}
-        <p>No assignments in this section.</p>
-      {% endfor %}
-    {% else %}
-      {% for q in quiz_items %}
-        <form method="post" action="{{ url_for('studios.edit_quiz_item', quiz_item_id=q.quiz_item_id) }}">
-          <label for="quiz-{{ q.quiz_item_id }}">Question {{ loop.index }}</label>
-          <textarea id="quiz-{{ q.quiz_item_id }}" name="prompt_text" rows="3" required>{{ q.prompt_text }}</textarea>
-          <label for="dok-{{ q.quiz_item_id }}">DOK</label>
-          <select id="dok-{{ q.quiz_item_id }}" name="dok_level">
-            {% for n in range(1, 5) %}<option value="{{ n }}" {% if n == q.dok_level %}selected{% endif %}>{{ n }}</option>{% endfor %}
-          </select>
-          <button type="submit">Save</button>
-        </form>
-      {% else %}
-        <p>No quiz items in this section.</p>
-      {% endfor %}
-    {% endif %}
-  </section>
-
-  <aside class="studio-right">
-    <p class="label">Standards coverage <span>{{ coverage.addressed }} / {{ coverage.total }}</span></p>
-    <ul class="std-list">
-      {% for card in coverage.standards %}{% set next_url = here %}{% include "_coverage_card.html" %}{% endfor %}
-    </ul>
-    <p class="source">Retrieved from GaDOE's published CASE framework, not generated by the model. case.georgiastandards.org</p>
-  </aside>
-</div>
-<footer class="studio-footer">
-  Draft generated · {{ coverage.counts.covered }} covered, {{ coverage.counts.partial }} partial, {{ coverage.counts.gap }} {{ 'gap' if coverage.counts.gap == 1 else 'gaps' }}{% if coverage.counts.dismissed %}, {{ coverage.counts.dismissed }} dismissed{% endif %}
-</footer>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close-dialog>Cancel</button>
+      <button type="submit" class="btn">Save settings</button>
+    </div>
+  </form>
+</dialog>
 {% endblock %}

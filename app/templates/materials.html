@@ -1,39 +1,29 @@
 {% extends "base.html" %}
 {% block title %}Materials · {{ unit.title }} · SPARC Studio{% endblock %}
-{% block crumbs %}<a href="{{ url_for('units.list_units') }}">My units</a> / <a href="{{ url_for('units.view_unit', unit_id=unit.unit_id) }}">{{ unit.title }}</a> / Materials{% endblock %}
+{% block crumbs %}{% set tail = "Materials" %}{% include "_crumbs_unit.html" %}{% endblock %}
 {% block content %}
-<section>
-  <p class="label">My materials · {{ materials|length }}</p>
-  <h1>{{ unit.title }}</h1>
-  <button type="button" data-open-dialog="upload-dialog">Add material</button>
+<div class="page page-narrow">
+  <div class="page-head">
+    <p class="label">My materials · {{ materials|length }}</p>
+    <h1>{{ unit.title }}</h1>
+    <p class="lede">The files the studio drafts from: slides, labs, notes, and vocabulary lists you've already written.</p>
+    <button type="button" class="btn" data-open-dialog="upload-dialog">Add material</button>
+  </div>
 
-  <ul class="material-list">
+  <ul class="plain-list">
     {% for m in materials %}
-      <li>
+      <li class="material-card">
         <span class="chip chip-{{ m.file_type|lower }}">{{ m.file_type }}</span>
-        <strong>{{ m.filename }}</strong>
-        <span>{{ m.size_label }}</span>
-        <form method="post" action="{{ url_for('materials.delete_material', material_id=m.material_id) }}"
+        <span class="grow">{{ m.filename }}<small>{{ m.size_label }}</small></span>
+        <form class="inline-form" method="post" action="{{ url_for('materials.delete_material', material_id=m.material_id) }}"
               data-confirm="Remove {{ m.filename }} from this unit?">
-          <button type="submit">Remove</button>
+          <button type="submit" class="link-btn danger">Remove</button>
         </form>
       </li>
     {% else %}
-      <li>No materials yet.</li>
+      <li class="card empty">No materials yet.</li>
     {% endfor %}
   </ul>
-</section>
-
-<dialog id="upload-dialog" aria-labelledby="upload-title">
-  <form method="post" action="{{ url_for('materials.add_material') }}" enctype="multipart/form-data">
-    <h2 id="upload-title">Add material</h2>
-    <input type="hidden" name="unit_id" value="{{ unit.unit_id }}">
-    <label for="upload-file">File ({{ allowed_types }})</label>
-    <input id="upload-file" type="file" name="file" accept=".pptx,.docx,.pdf" required>
-    <p>Phase 1 records the file's name, type, and size. It doesn't store or read the file.</p>
-    <button type="submit">Upload</button>
-    <button type="button" data-close-dialog>Cancel</button>
-  </form>
-</dialog>
+</div>
+{% include "_upload_dialog.html" %}
 {% endblock %}
-{% block scripts %}{% include "_dialogs.html" %}{% endblock %}

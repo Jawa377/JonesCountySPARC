@@ -1,0 +1,17 @@
+{# Upload modal. Needs: unit; optional: next_url (where to return after upload). #}
+<dialog id="upload-dialog" aria-labelledby="upload-title">
+  <form method="post" action="{{ url_for('materials.add_material') }}" enctype="multipart/form-data">
+    <h2 id="upload-title">Add material</h2>
+    <input type="hidden" name="unit_id" value="{{ unit.unit_id }}">
+    <input type="hidden" name="next" value="{{ next_url or '' }}">
+    <div class="field">
+      <label for="upload-file">File (PPTX, DOCX, or PDF)</label>
+      <input id="upload-file" type="file" name="file" accept=".pptx,.docx,.pdf" required>
+      <p class="hint">Phase 1 records the file's name, type, and size. It doesn't store or read the file yet.</p>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close-dialog>Cancel</button>
+      <button type="submit" class="btn">Upload</button>
+    </div>
+  </form>
+</dialog>
