@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}My units · SPARC Studio{% endblock %}
+{% block content %}
+<section>
+  <p class="label">{{ current_teacher.name }}</p>
+  <h1>My units</h1>
+  {% if units %}
+    <ul class="unit-list">
+      {% for u in units %}
+        <li>
+          <a href="{{ url_for('units.view_unit', unit_id=u.unit_id) }}">
+            <span class="label">{{ u.grade|ordinal }} Grade {{ u.subject }} · Unit {{ u.unit_number }}</span>
+            <strong>{{ u.title }}</strong>
+          </a>
+          <span>{{ u.section_count }} sections · {{ u.material_count }} materials · {{ u.standards_set }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>You don't have any units yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

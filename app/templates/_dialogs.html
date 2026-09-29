@@ -1,0 +1,16 @@
+<script>
+  // Open/close native <dialog> modals, and confirm destructive forms.
+  document.querySelectorAll("[data-open-dialog]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.getElementById(btn.dataset.openDialog).showModal();
+    });
+  });
+  document.querySelectorAll("[data-close-dialog]").forEach(function (btn) {
+    btn.addEventListener("click", function () { btn.closest("dialog").close(); });
+  });
+  document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.dataset.confirm)) { event.preventDefault(); }
+    });
+  });
+</script>

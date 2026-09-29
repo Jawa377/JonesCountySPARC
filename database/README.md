@@ -1,59 +1,75 @@
 # Database Setup
 
-This directory contains the database structure and sample data for the CRUD
-starter kit.
+SPARC Textbook Studio stores everything in 10 tables (see `schema.sql`).
+Locally it runs on SQLite; in production it runs on MySQL (JawsDB). The same
+SQL files serve both.
 
 ## Files
 
-- `schema.sql` — table definitions
-- `seed_data.sql` — sample rows for testing
+- `schema.sql`: table definitions (portable SQLite/MySQL)
+- `seed_data.sql`: pilot data for Ms. Ruffin's 6th Grade Science Unit 3,
+  "Water in Earth's Systems," taken verbatim from the SPARC handout
+- `init_db.py`: creates the tables and loads the seed data
 
-## Setup Instructions
+## Choosing the engine
 
-### 1. Prerequisites
-- Your database has been provisioned on the shared MySQL server (Module 4
-  Lesson 1) and you have the host / username / password / database name.
-- Those credentials are in your local `.env` file (see the repo's `.env.example`).
+`DATABASE_ENGINE` in `.env` (see `.env.example`):
 
-### 2. Create the table structure
-Run the schema file against your database:
+- `sqlite` (default): creates `database/sparc.db`. The file is gitignored.
+- `mysql`: uses the database in `JAWSDB_URL`.
+
+## Create the database
+
+From the project root, with `.venv` active:
 
 ```bash
-mysql -h <host> -u <username> -p <database_name> < database/schema.sql
+python database/init_db.py                 # tables + seed data
+python database/init_db.py --schema-only   # tables only
 ```
 
-Or paste its contents into MySQL Workbench and run.
+The script **never drops or overwrites anything**:
 
-### 3. Load sample data (optional)
+- **SQLite:** it stops if `database/sparc.db` already exists. It builds into a
+  temp file and only renames it into place when every statement succeeds.
+- **MySQL:** it stops if any SPARC table already exists.
+
+To start over, delete `database/sparc.db` (or drop the tables in MySQL)
+yourself, then rerun it.
+
+### Portability notes
+
+- Primary keys are written `INTEGER PRIMARY KEY AUTOINCREMENT`. The init
+  script swaps that to `AUTO_INCREMENT` for MySQL. That's the only dialect
+  difference.
+- Allowed values use `VARCHAR` + `CHECK` instead of `ENUM`. This needs
+  MySQL 8.0.16+ for the checks to be enforced.
+- `updated_at` is set by the app in each `UPDATE`, not by
+  `ON UPDATE CURRENT_TIMESTAMP`, which is MySQL-only.
+- SQLite enforces foreign keys only with `PRAGMA foreign_keys = ON` on each
+  connection.
+
+## Tables
+
+| Table | Holds |
+|---|---|
+| `teachers` | Pilot teachers (no login in Phase 1) |
+| `units` | A teacher's unit plus its draft settings (standards set, Lexile range, voice) |
+| `materials` | Upload records: filename, type, size label. No file contents. |
+| `standards` | Georgia standards, from retrieval only, never model-generated |
+| `sections` | Textbook sections: body text, learning target, word count, Lexile, status |
+| `vocab_terms` | Vocabulary callouts for a section |
+| `assignments` | Support / core / extension practice items for a section |
+| `quiz_items` | Quiz questions with a DOK level |
+| `alignments` | Which element covers which standard, and the exact evidence passage |
+| `coverage_dismissals` | Gaps a teacher marked as intentional |
+
+## Production (Dokku on iscs2)
+
 ```bash
-mysql -h <host> -u <username> -p <database_name> < database/seed_data.sql
+ssh dokku@iscs2.gcsu.edu config:set <app> DATABASE_ENGINE=mysql \
+    JAWSDB_URL='mysql://user:pass@host:3306/dbname'
 ```
 
-## Database Structure
-
-### `sample_table`
-- `sample_table_id` — INT, primary key, auto-increment
-- `first_name` — VARCHAR(50), NOT NULL
-- `last_name` — VARCHAR(50), NOT NULL
-- `date_of_birth` — DATE, NOT NULL
-- `created_at` — TIMESTAMP, defaults to current time
-- `updated_at` — TIMESTAMP, auto-updated on modification
-
-The schema includes helpful indexes for common query patterns. `seed_data.sql`
-loads 10 test rows.
-
-## Database Connection
-
-Local and production both read `JAWSDB_URL` from the environment. The name is
-a holdover from the Heroku JawsDB add-on — the value is just a MySQL connection
-string in the format `mysql://username:password@host:port/database_name`.
-
-- **Local:** put it in `.env` (copy from `.env.example`).
-- **Production (Dokku on iscs2):** set it as a config var:
-  ```bash
-  ssh dokku@iscs2.gcsu.edu config:set <netid>-demo-04 \
-      JAWSDB_URL='mysql://user:pass@host:3306/dbname'
-  ```
-
-See Module 4 Lesson 1 (`jawsdb-mysql-setup.md`) for how you get the credentials
-in the first place.
+Then run `init_db.py` once from your machine with the same two values in
+`.env`. SQLite isn't used on Dokku because the container filesystem is wiped
+on every deploy.

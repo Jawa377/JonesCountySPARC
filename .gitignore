@@ -63,3 +63,6 @@ instance/
 .Trashes
 ehthumbs.db
 Thumbs.db
+# Local SQLite database (rebuild with: python database/init_db.py)
+database/*.db
+database/*.db.tmp

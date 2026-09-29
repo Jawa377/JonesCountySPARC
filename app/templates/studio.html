@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ section.title }} · SPARC Studio{% endblock %}
+{% block crumbs %}{{ unit.grade|ordinal }} Grade {{ unit.subject }} / Unit {{ unit.unit_number }} / <a href="{{ url_for('units.view_unit', unit_id=unit.unit_id) }}">{{ unit.title }}</a>{% endblock %}
+{% block content %}
+{% set here = url_for('studios.show_studio', section_id=section.section_id, tab=tab) %}
+<div class="studio">
+  <aside class="studio-left">
+    <p class="label">My materials <span>{{ materials|length }}</span></p>
+    <ul class="material-list">
+      {% for m in materials %}
+        <li><span class="chip chip-{{ m.file_type|lower }}">{{ m.file_type }}</span> {{ m.filename }} <small>{{ m.size_label }}</small></li>
+      {% endfor %}
+    </ul>
+    <a href="{{ url_for('materials.list_materials', unit_id=unit.unit_id) }}">Manage materials</a>
+
+    <form method="post" action="{{ url_for('studios.edit_settings', unit_id=unit.unit_id) }}">
+      <p class="label">Draft settings</p>
+      <input type="hidden" name="section_id" value="{{ section.section_id }}">
+      <p>Standards set<br><strong>{{ unit.standards_set }}</strong></p>
+      <fieldset>
+        <legend>Reading level (Lexile)</legend>
+        <label for="lexile-min">From</label>
+        <input id="lexile-min" type="number" name="lexile_min" value="{{ unit.lexile_min }}" min="0" max="2000" step="10">
+        <label for="lexile-max">to</label>
+        <input id="lexile-max" type="number" name="lexile_max" value="{{ unit.lexile_max }}" min="0" max="2000" step="10">
+      </fieldset>
+      <label for="voice">Voice</label>
+      <select id="voice" name="voice">
+        {% for value, label in voice_labels.items() %}
+          <option value="{{ value }}" {% if value == unit.voice %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Save settings</button>
+    </form>
+  </aside>
+
+  <section class="studio-center">
+    <nav class="section-switch" aria-label="Sections">
+      {% for s in sections %}
+        <a href="{{ url_for('studios.show_studio', section_id=s.section_id) }}" {% if s.section_id == section.section_id %}aria-current="page"{% endif %}>Section {{ s.section_number }}</a>
+      {% endfor %}
+    </nav>
+    <nav class="tabs" aria-label="Section parts">
+      <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='section') }}" {% if tab == 'section' %}aria-current="page"{% endif %}>Textbook section</a>
+      <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='assignments') }}" {% if tab == 'assignments' %}aria-current="page"{% endif %}>Assignments <span>{{ assignments|length }}</span></a>
+      <a href="{{ url_for('studios.show_studio', section_id=section.section_id, tab='quiz') }}" {% if tab == 'quiz' %}aria-current="page"{% endif %}>Quiz <span>{{ quiz_items|length }}</span></a>
+    </nav>
+
+    <p class="label">Unit {{ unit.unit_number }} · Section {{ section.section_number }} · {{ section.status }}</p>
+
+    {% if tab == 'section' %}
+      <form method="post" action="{{ url_for('studios.edit_section', section_id=section.section_id) }}">
+        <label for="title">Title</label>
+        <input id="title" name="title" value="{{ section.title }}" maxlength="200" required>
+        <p class="meta">Generated from your {{ materials|length }} files · {{ "{:,}".format(section.word_count) }} words{% if section.lexile %} · Lexile {{ section.lexile }}{% endif %} · full edit control</p>
+        <label for="body-text">Body text</label>
+        <textarea id="body-text" name="body_text" rows="24" required>{{ section.body_text }}</textarea>
+        <button type="submit">Save section</button>
+      </form>
+    {% elif tab == 'assignments' %}
+      {% for a in assignments %}
+        <form method="post" action="{{ url_for('studios.edit_assignment', assignment_id=a.assignment_id) }}">
+          <label for="assignment-{{ a.assignment_id }}">{{ a.level|capitalize }}</label>
+          <textarea id="assignment-{{ a.assignment_id }}" name="prompt_text" rows="3" required>{{ a.prompt_text }}</textarea>
+          <button type="submit">Save</button>
+        </form>
+      {% else %}
+        <p>No assignments in this section.</p>
+      {% endfor %}
+    {% else %}
+      {% for q in quiz_items %}
+        <form method="post" action="{{ url_for('studios.edit_quiz_item', quiz_item_id=q.quiz_item_id) }}">
+          <label for="quiz-{{ q.quiz_item_id }}">Question {{ loop.index }}</label>
+          <textarea id="quiz-{{ q.quiz_item_id }}" name="prompt_text" rows="3" required>{{ q.prompt_text }}</textarea>
+          <label for="dok-{{ q.quiz_item_id }}">DOK</label>
+          <select id="dok-{{ q.quiz_item_id }}" name="dok_level">
+            {% for n in range(1, 5) %}<option value="{{ n }}" {% if n == q.dok_level %}selected{% endif %}>{{ n }}</option>{% endfor %}
+          </select>
+          <button type="submit">Save</button>
+        </form>
+      {% else %}
+        <p>No quiz items in this section.</p>
+      {% endfor %}
+    {% endif %}
+  </section>
+
+  <aside class="studio-right">
+    <p class="label">Standards coverage <span>{{ coverage.addressed }} / {{ coverage.total }}</span></p>
+    <ul class="std-list">
+      {% for card in coverage.standards %}{% set next_url = here %}{% include "_coverage_card.html" %}{% endfor %}
+    </ul>
+    <p class="source">Retrieved from GaDOE's published CASE framework, not generated by the model. case.georgiastandards.org</p>
+  </aside>
+</div>
+<footer class="studio-footer">
+  Draft generated · {{ coverage.counts.covered }} covered, {{ coverage.counts.partial }} partial, {{ coverage.counts.gap }} {{ 'gap' if coverage.counts.gap == 1 else 'gaps' }}{% if coverage.counts.dismissed %}, {{ coverage.counts.dismissed }} dismissed{% endif %}
+</footer>
+{% endblock %}

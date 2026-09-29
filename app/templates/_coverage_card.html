@@ -1,0 +1,31 @@
+{# One standard's card. Needs: card, unit; optional: next_url (return path for forms). #}
+<li class="std-card std-{{ card.status }}{% if card.dismissal %} std-dismissed{% endif %}"
+    data-standard="{{ card.code }}">
+  <p>
+    <a href="{{ url_for('standards.show_standard', standard_id=card.standard_id, unit_id=unit.unit_id) }}"><strong>{{ card.code }}</strong></a>
+    <span class="badge badge-{{ card.status }}">{{ 'dismissed' if card.dismissal else card.status }}</span>
+  </p>
+  <p>{{ card.description }}</p>
+  {% if card.status != 'covered' %}
+    <p class="std-note">{{ card.dismissal.reason if card.dismissal else card.note }}</p>
+    {% if card.dismissal %}
+      <form method="post" action="{{ url_for('standards.undismiss_gap') }}">
+        <input type="hidden" name="unit_id" value="{{ unit.unit_id }}">
+        <input type="hidden" name="standard_id" value="{{ card.standard_id }}">
+        <input type="hidden" name="next" value="{{ next_url or '' }}">
+        <button type="submit">Undo dismiss</button>
+      </form>
+    {% else %}
+      <button type="button" disabled title="Draft generation isn't connected yet">Generate</button>
+      {% if card.status == 'gap' %}
+        <form method="post" action="{{ url_for('standards.dismiss_gap') }}">
+          <input type="hidden" name="unit_id" value="{{ unit.unit_id }}">
+          <input type="hidden" name="standard_id" value="{{ card.standard_id }}">
+          <input type="hidden" name="reason" value="{{ card.note or '' }}">
+          <input type="hidden" name="next" value="{{ next_url or '' }}">
+          <button type="submit">Dismiss</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+</li>
